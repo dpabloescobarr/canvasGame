@@ -16,34 +16,32 @@ window.onload = function() {
         height = canvas.height = window.innerHeight,
         tileWidth = 60,
         tileHeight = 30,
+
         activeScale = {
-
-        status: false
-
-    }
+            status: false
+        }
 
     const tiles = [];
     let activeTile = null;
 
     ctx.translate(width / 2, 10)
 
-    var img = document.createElement("img")
+    let img = document.createElement("img")
 
-    /*   
+ 
     img.addEventListener("load", function() {
-    init();
-    draw();
+
+        init();
     })
-    */
-    init();
+
 
     img.src = "tileset.png"
 
 
 
     function init() {
-        for (var x = 0; x < 3; x++) {
-            for (var y = 0; y < 3; y++) {
+        for (var x = 0; x < 30; x++) {
+            for (var y = 0; y < 30; y++) {
                 tiles.push({ x, y, index: Math.floor(Math.random() * 16), active: false });
             }
         }
@@ -52,19 +50,17 @@ window.onload = function() {
 
     function draw() {
 
-        tiles.forEach((t) => {
-
-            drawImageTile(t)
-            
-        });
+        tiles.forEach(t => drawImageTile(t) )
     }
 
 
     let rectFigure = new Path2D()
-        rectFigure.moveTo(0, 0)
-        rectFigure.lineTo(tileWidth / 2, tileHeight / 2)
-        rectFigure.lineTo(0, tileHeight)
-        rectFigure.lineTo(-tileWidth / 2, tileHeight / 2)
+        
+        rectFigure.moveTo(2, 9)
+        rectFigure.lineTo(tileWidth / 2 + 2, tileHeight / 2 + 9)
+        rectFigure.lineTo(2, tileHeight + 9)
+        rectFigure.lineTo(-tileWidth / 2 + 2, tileHeight / 2 + 9)
+        rectFigure.lineTo(3, 9)
 
 
 
@@ -73,20 +69,20 @@ window.onload = function() {
 
         const xx = (x - y) * tileWidth / 2
         const yy = (x + y) * tileHeight / 2
-        const idx = index
 
         ctx.save();
         ctx.translate(xx, yy)
 
         
-        // ctx.drawImage(img, index * tileWidth, 0, tileWidth, img.height,
-        // 	-tileWidth / 2, 0, tileWidth, img.height);
+        ctx.drawImage(img, index * tileWidth, 0, tileWidth, img.height,
+        	-tileWidth / 2, 0, tileWidth, img.height);
 
-        if (active) ctx.fillStyle = 'red'
-            else ctx.fillStyle = 'black'
+        if (active) ctx.strokeStyle = 'red'
+            else ctx.strokeStyle = '#ffffff00'
 
         ctx.beginPath()
-        ctx.fill(rectFigure);
+        ctx.lineWidth = 3
+        ctx.stroke(rectFigure);
         ctx.closePath()
 
         ctx.restore();
@@ -156,12 +152,12 @@ window.onload = function() {
         activeScale.status = false
     }
 
-
-
+    
     setInterval(() => {
 
-        ctx.clearRect(-width / 2, -1000, 2000, 2000)
+        ctx.clearRect(-width, -1000, 3000, 3000)
         draw()
+        
         
     },40)
 
