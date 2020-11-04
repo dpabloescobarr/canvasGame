@@ -1,0 +1,170 @@
+<style>
+    html, body {
+    margin: 0;
+    padding: 0;
+}
+</style>
+<canvas id="canvas"></canvas>
+
+<script>
+
+window.onload = function() {
+
+    var canvas = document.getElementById("canvas"),
+        ctx = canvas.getContext("2d"),
+        width = canvas.width = window.innerWidth,
+        height = canvas.height = window.innerHeight,
+        tileWidth = 60,
+        tileHeight = 30,
+        activeScale = {
+
+        status: false
+
+    }
+
+    const tiles = [];
+    let activeTile = null;
+
+    ctx.translate(width / 2, 10)
+
+    var img = document.createElement("img")
+
+    /*   
+    img.addEventListener("load", function() {
+    init();
+    draw();
+    })
+    */
+    init();
+
+    img.src = "tileset.png"
+
+
+
+    function init() {
+        for (var x = 0; x < 3; x++) {
+            for (var y = 0; y < 3; y++) {
+                tiles.push({ x, y, index: Math.floor(Math.random() * 16), active: false });
+            }
+        }
+    }
+
+
+    function draw() {
+
+        tiles.forEach((t) => {
+
+            drawImageTile(t)
+            
+        });
+    }
+
+
+    let rectFigure = new Path2D()
+        rectFigure.moveTo(0, 0)
+        rectFigure.lineTo(tileWidth / 2, tileHeight / 2)
+        rectFigure.lineTo(0, tileHeight)
+        rectFigure.lineTo(-tileWidth / 2, tileHeight / 2)
+
+
+
+    function drawImageTile({ x, y, index, active }) {
+
+
+        const xx = (x - y) * tileWidth / 2
+        const yy = (x + y) * tileHeight / 2
+        const idx = index
+
+        ctx.save();
+        ctx.translate(xx, yy)
+
+        
+        // ctx.drawImage(img, index * tileWidth, 0, tileWidth, img.height,
+        // 	-tileWidth / 2, 0, tileWidth, img.height);
+
+        if (active) ctx.fillStyle = 'red'
+            else ctx.fillStyle = 'black'
+
+        ctx.beginPath()
+        ctx.fill(rectFigure);
+        ctx.closePath()
+
+        ctx.restore();
+    }
+
+
+    canvas.addEventListener('mousemove', (e)=>{
+
+        let tile;
+        let isInPath = false;
+
+        for (tile of tiles) {
+
+            isInPath = ctx.isPointInPath(
+                rectFigure,
+                e.clientX - (tile.x - tile.y) * tileWidth / 2,
+                e.clientY - (tile.x + tile.y) * tileHeight / 2,
+
+            )
+            
+            if (isInPath) break;
+        }
+        
+        
+        if (activeTile) activeTile.active = false;
+
+        if (isInPath) {
+
+            activeTile = tile;
+            activeTile.active = true;
+
+        }else{
+            activeTile = null;
+        }
+
+        if(activeScale.status){
+
+            ctx.setTransform(1, 0, 0, 1, e.clientX - activeScale.diffX, e.clientY - activeScale.diffY)
+
+        }
+        
+
+    })
+
+    canvas.addEventListener('mousedown', function(e){
+
+        activeScale = {
+
+            status: true,
+            diffX: e.clientX - ctx.getTransform().e,
+            diffY: e.clientY - ctx.getTransform().f
+        }
+
+    })
+
+    canvas.addEventListener('mouseup', function(e){
+
+        activeScale.status = false
+
+    })
+
+    canvas.onmouseout = function(e) {
+
+        if (activeTile) activeTile.active = false;
+
+        activeTile = null;
+        activeScale.status = false
+    }
+
+
+
+    setInterval(() => {
+
+        ctx.clearRect(-width / 2, -1000, 2000, 2000)
+        draw()
+        
+    },40)
+
+}
+
+</script>
