@@ -6,6 +6,8 @@
 </style>
 <canvas id="canvas"></canvas>
 
+
+<script src="class/sendFetch.js"></script>
 <script>
 
 window.onload = function() {
@@ -16,33 +18,50 @@ window.onload = function() {
         height = canvas.height = window.innerHeight,
         tileWidth = 60,
         tileHeight = 30,
+        activeTile = null,
 
         activeScale = {
             status: false
-        }
+        };
 
     const tiles = [];
-    let activeTile = null;
+    let img = document.createElement("img")
+
+    let getMap = async function (){
+
+        this.map = await new sendFetch(activeTile, 'getmap', 'GET')
+
+        return JSON.parse(this.map)
+    }
+
+    img.addEventListener("load", function() {
+
+        (async function(){
+
+            this.map = await getMap()
+
+            init(this.map);
+
+            setInterval(() => {
+
+                ctx.clearRect(-width, -1000, 3000, 3000)
+                draw()
+
+            },40)
+
+        })()
+
+    })
+    
+    img.src = "tileset.png"
 
     ctx.translate(width / 2, 10)
 
-    let img = document.createElement("img")
 
- 
-    img.addEventListener("load", function() {
-
-        init();
-    })
-
-
-    img.src = "tileset.png"
-
-
-
-    function init() {
-        for (var x = 0; x < 30; x++) {
-            for (var y = 0; y < 30; y++) {
-                tiles.push({ x, y, index: Math.floor(Math.random() * 16), active: false });
+    function init(map) {
+        for (var x = 0; x < map.length; x++) {
+            for (var y = 0; y < map[x].length; y++) {
+                tiles.push({ x, y, index: map[x][y], active: false });
             }
         }
     }
@@ -89,40 +108,43 @@ window.onload = function() {
     }
 
 
+
+
     canvas.addEventListener('mousemove', (e)=>{
 
-        let tile;
-        let isInPath = false;
+            let tile;
+            let isInPath = false;
 
-        for (tile of tiles) {
+            for (tile of tiles) {
 
-            isInPath = ctx.isPointInPath(
-                rectFigure,
-                e.clientX - (tile.x - tile.y) * tileWidth / 2,
-                e.clientY - (tile.x + tile.y) * tileHeight / 2,
+                isInPath = ctx.isPointInPath(
+                    rectFigure,
+                    e.clientX - (tile.x - tile.y) * tileWidth / 2,
+                    e.clientY - (tile.x + tile.y) * tileHeight / 2,
 
-            )
+                )
+                
+                if (isInPath) break;
+            }
             
-            if (isInPath) break;
-        }
-        
-        
-        if (activeTile) activeTile.active = false;
+            
+            if (activeTile) activeTile.active = false;
 
-        if (isInPath) {
+            if (isInPath) {
 
-            activeTile = tile;
-            activeTile.active = true;
+                activeTile = tile;
+                activeTile.active = true;
 
-        }else{
-            activeTile = null;
-        }
+            }else{
+                activeTile = null;
 
-        if(activeScale.status){
+            }
 
-            ctx.setTransform(1, 0, 0, 1, e.clientX - activeScale.diffX, e.clientY - activeScale.diffY)
+            if(activeScale.status){
 
-        }
+                ctx.setTransform(1, 0, 0, 1, e.clientX - activeScale.diffX, e.clientY - activeScale.diffY)
+
+            }
         
 
     })
@@ -144,22 +166,27 @@ window.onload = function() {
 
     })
 
-    canvas.onmouseout = function(e) {
+    canvas.addEventListener('mouseout', function(e) {
 
         if (activeTile) activeTile.active = false;
 
         activeTile = null;
         activeScale.status = false
-    }
+    })
 
+    canvas.addEventListener('click', function(e){
+
+       this.toFetch = async function (){
+
+           this.data = await new sendFetch(activeTile, 'currtile', 'POST')
     
-    setInterval(() => {
+            console.log(this.data)
+        }
+        
+        this.toFetch()
 
-        ctx.clearRect(-width, -1000, 3000, 3000)
-        draw()
-        
-        
-    },40)
+    })
+    
 
 }
 
