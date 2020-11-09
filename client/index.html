@@ -8,186 +8,196 @@
 
 
 <script src="class/sendFetch.js"></script>
+<script src="functions.js"></script>
 <script>
 
-window.onload = function() {
 
-    var canvas = document.getElementById("canvas"),
-        ctx = canvas.getContext("2d"),
-        width = canvas.width = window.innerWidth,
-        height = canvas.height = window.innerHeight,
-        tileWidth = 60,
-        tileHeight = 30,
-        activeTile = null,
+// window.onload = function() {
 
-        activeScale = {
-            status: false
-        };
+//     var canvas = document.getElementById("canvas"),
+//         ctx = canvas.getContext("2d"),
+//         width = canvas.width = window.innerWidth,
+//         height = canvas.height = window.innerHeight,
+//         tileWidth = 60,
+//         tileHeight = 30,
+//         activeTile = null,
 
-    const tiles = [];
-    let img = document.createElement("img")
+//         activeScale = {
+//             status: false
+//         };
 
-    let getMap = async function (){
+//     const tiles = []
+//     let mainMap = []
+//     let img = document.createElement("img")
 
-        this.map = await new sendFetch(activeTile, 'getmap', 'GET')
+//     let getMap = async function (){
 
-        return JSON.parse(this.map)
-    }
+//         this.map = await new sendFetch(activeTile, 'getmap', 'GET')
 
-    img.addEventListener("load", function() {
+//         return JSON.parse(this.map)
+//     }
 
-        (async function(){
+//     img.addEventListener("load", function() {
 
-            this.map = await getMap()
+//         (async function(){
 
-            init(this.map);
+//             this.map = await getMap()
 
-            setInterval(() => {
+//             init(this.map);
 
-                ctx.clearRect(-width, -1000, 3000, 3000)
-                draw()
+//             setInterval(() => {
 
-            },40)
+//                 ctx.clearRect(-width, -1000, 3000, 3000)
+//                 draw()
 
-        })()
+//             },800)
 
-    })
+//         })()
+
+//     })
     
-    img.src = "tileset.png"
+//     img.src = "tileset.png"
 
-    ctx.translate(width / 2, 10)
-
-
-    function init(map) {
-        for (var x = 0; x < map.length; x++) {
-            for (var y = 0; y < map[x].length; y++) {
-                tiles.push({ x, y, index: map[x][y], active: false });
-            }
-        }
-    }
+//     ctx.translate(width / 2, 10)
 
 
-    function draw() {
+//     function init(map) {
+//         for (var x = 0; x < map.length; x++) {
+//             for (var y = 0; y < map[x].length; y++) {
+//                 tiles.push({ x, y, index: map[x][y], active: false });
+//             }
+//         }
+//         mainMap = map
+//     }
 
-        tiles.forEach(t => drawImageTile(t) )
-    }
+
+//     function draw() {
+
+//         tiles.forEach(t => drawImageTile(t) )
+//     }
 
 
-    let rectFigure = new Path2D()
+//     let rectFigure = new Path2D()
         
-        rectFigure.moveTo(2, 9)
-        rectFigure.lineTo(tileWidth / 2 + 2, tileHeight / 2 + 9)
-        rectFigure.lineTo(2, tileHeight + 9)
-        rectFigure.lineTo(-tileWidth / 2 + 2, tileHeight / 2 + 9)
-        rectFigure.lineTo(3, 9)
+//         rectFigure.moveTo(2, 9)
+//         rectFigure.lineTo(tileWidth / 2 + 2, tileHeight / 2 + 9)
+//         rectFigure.lineTo(2, tileHeight + 9)
+//         rectFigure.lineTo(-tileWidth / 2 + 2, tileHeight / 2 + 9)
+//         rectFigure.lineTo(3, 9)
 
 
 
-    function drawImageTile({ x, y, index, active }) {
+//     function drawImageTile({ x, y, index, active }) {
 
 
-        const xx = (x - y) * tileWidth / 2
-        const yy = (x + y) * tileHeight / 2
+//         const xx = (x - y) * tileWidth / 2
+//         const yy = (x + y) * tileHeight / 2
 
-        ctx.save();
-        ctx.translate(xx, yy)
+//         ctx.save();
+//         ctx.translate(xx, yy)
 
         
-        ctx.drawImage(img, index * tileWidth, 0, tileWidth, img.height,
-        	-tileWidth / 2, 0, tileWidth, img.height);
+//         ctx.drawImage(img, index * tileWidth, 0, tileWidth, img.height,
+//         	-tileWidth / 2, 0, tileWidth, img.height);
 
-        if (active) ctx.strokeStyle = 'red'
-            else ctx.strokeStyle = '#ffffff00'
+//         if (active) ctx.strokeStyle = 'red'
+//             else ctx.strokeStyle = '#ffffff00'
 
-        ctx.beginPath()
-        ctx.lineWidth = 3
-        ctx.stroke(rectFigure);
-        ctx.closePath()
-
-        ctx.restore();
-    }
+//         outlineRectSize(x, y, index, active, mainMap)
 
 
 
 
-    canvas.addEventListener('mousemove', (e)=>{
 
-            let tile;
-            let isInPath = false;
+//         ctx.beginPath()
+//         ctx.lineWidth = 3
+//         ctx.stroke(rectFigure);
+//         ctx.closePath()
 
-            for (tile of tiles) {
+//         ctx.restore();
+//     }
 
-                isInPath = ctx.isPointInPath(
-                    rectFigure,
-                    e.clientX - (tile.x - tile.y) * tileWidth / 2,
-                    e.clientY - (tile.x + tile.y) * tileHeight / 2,
 
-                )
+
+
+//     canvas.addEventListener('mousemove', (e)=>{
+
+//             let tile;
+//             let isInPath = false;
+
+//             for (tile of tiles) {
+
+//                 isInPath = ctx.isPointInPath(
+//                     rectFigure,
+//                     e.clientX - (tile.x - tile.y) * tileWidth / 2,
+//                     e.clientY - (tile.x + tile.y) * tileHeight / 2,
+
+//                 )
                 
-                if (isInPath) break;
-            }
+//                 if (isInPath) break;
+//             }
             
             
-            if (activeTile) activeTile.active = false;
+//             if (activeTile) activeTile.active = false;
 
-            if (isInPath) {
+//             if (isInPath) {
 
-                activeTile = tile;
-                activeTile.active = true;
+//                 activeTile = tile;
+//                 activeTile.active = true;
 
-            }else{
-                activeTile = null;
+//             }else{
+//                 activeTile = null;
 
-            }
+//             }
 
-            if(activeScale.status){
+//             if(activeScale.status){
 
-                ctx.setTransform(1, 0, 0, 1, e.clientX - activeScale.diffX, e.clientY - activeScale.diffY)
+//                 ctx.setTransform(1, 0, 0, 1, e.clientX - activeScale.diffX, e.clientY - activeScale.diffY)
 
-            }
+//             }
         
 
-    })
+//     })
 
-    canvas.addEventListener('mousedown', function(e){
+//     canvas.addEventListener('mousedown', function(e){
 
-        activeScale = {
+//         activeScale = {
 
-            status: true,
-            diffX: e.clientX - ctx.getTransform().e,
-            diffY: e.clientY - ctx.getTransform().f
-        }
+//             status: true,
+//             diffX: e.clientX - ctx.getTransform().e,
+//             diffY: e.clientY - ctx.getTransform().f
+//         }
 
-    })
+//     })
 
-    canvas.addEventListener('mouseup', function(e){
+//     canvas.addEventListener('mouseup', function(e){
 
-        activeScale.status = false
+//         activeScale.status = false
 
-    })
+//     })
 
-    canvas.addEventListener('mouseout', function(e) {
+//     canvas.addEventListener('mouseout', function(e) {
 
-        if (activeTile) activeTile.active = false;
+//         if (activeTile) activeTile.active = false;
 
-        activeTile = null;
-        activeScale.status = false
-    })
+//         activeTile = null;
+//         activeScale.status = false
+//     })
 
-    canvas.addEventListener('click', function(e){
+//     canvas.addEventListener('click', function(e){
 
-       this.toFetch = async function (){
+//        this.toFetch = async function (){
 
-           this.data = await new sendFetch(activeTile, 'currtile', 'POST')
+//            this.data = await new sendFetch(activeTile, 'currtile', 'POST')
     
-            console.log(this.data)
-        }
+//             console.log(this.data)
+//         }
         
-        this.toFetch()
+//         this.toFetch()
 
-    })
+//     })
     
 
-}
+// }
 
 </script>
