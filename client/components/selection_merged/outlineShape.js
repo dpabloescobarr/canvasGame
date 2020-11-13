@@ -1,4 +1,5 @@
-function outlineShape(p_tiles, p_mainMap, p_index){
+function outlineShape(p_tiles, p_mainMap, p_type){
+
 
     let currX, currY,
         frames = [],
@@ -9,10 +10,10 @@ function outlineShape(p_tiles, p_mainMap, p_index){
         currX = Number(p_tiles[i].match(/x:([0-9]{1,500})/)[1])
         currY = Number(p_tiles[i].match(/y:([0-9]{1,500})/)[1])
 
-        top    = checkRouteMap(currX, currY, p_mainMap, p_index, 'top')
-        right  = checkRouteMap(currX, currY, p_mainMap, p_index, 'right')
-        bottom = checkRouteMap(currX, currY, p_mainMap, p_index, 'bottom')
-        left   = checkRouteMap(currX, currY, p_mainMap, p_index, 'left')
+        top    = checkRouteMap(currX, currY, p_mainMap, p_type, 'top')
+        right  = checkRouteMap(currX, currY, p_mainMap, p_type, 'right')
+        bottom = checkRouteMap(currX, currY, p_mainMap, p_type, 'bottom')
+        left   = checkRouteMap(currX, currY, p_mainMap, p_type, 'left')
 
         frames[i] = writeState(currX, currY, top, right, bottom, left)
 

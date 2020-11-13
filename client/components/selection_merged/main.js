@@ -1,26 +1,15 @@
-async function init(elem = null, v = 0){
+async function init(elem = null, v = 0, p_activeTile, p_mainMap){
 
-    let index = 4, tiles,
-        active = true,
-
-        mainMap = 
-            [
-                [5,5,4,4,4,5],
-                [4,5,4,4,4,4],
-                [4,3,3,3,3,4],
-                [4,2,2,2,2,4],
-                [4,4,5,4,4,4]
-
-
-            ]
-
+    let type = p_activeTile.type, 
+        tiles,
+        active = true
 
     if(elem == null){
     
-        let x = 0,
-            y = 4
+        let x = p_activeTile.x,
+            y = p_activeTile.y
 
-        tiles = outlineRectSize(x, y, index, active, mainMap)
+        tiles = outlineRectSize(x, y, type, active, p_mainMap)
 
     }else{
 
@@ -31,8 +20,9 @@ async function init(elem = null, v = 0){
     }
 
 
-    let otherTiles = []
-    let currX, currY
+    let otherTiles = [],
+        currX,
+        currY
 
 
     for(let i = 0; tiles.items.length > i; i++){
@@ -40,7 +30,7 @@ async function init(elem = null, v = 0){
         currX = tiles.items[i].match(/x:([0-9]{1,500})/)[1]
         currY = tiles.items[i].match(/y:([0-9]{1,500})/)[1]
 
-        otherTiles[i] = outlineRectSize(Number(currX), Number(currY), index, active, mainMap)
+        otherTiles[i] = outlineRectSize(Number(currX), Number(currY), type, active, p_mainMap)
 
     }
 
@@ -65,13 +55,14 @@ async function init(elem = null, v = 0){
     
     if(restruct.items.length != restruct.passed.length) {
 
-        return await init(restruct, v)
+        return await init(restruct, v, p_activeTile, p_mainMap)
     
     }else{ 
 
-        console.log('Перебор c числом циклов: '+v)
+        // console.log('Перебор c числом циклов: '+v)
 
-        return outlineShape(restruct.items, mainMap, index)
+                //outlineShape.js
+        return outlineShape(restruct.items, p_mainMap, type)
     }
 
 
@@ -80,19 +71,9 @@ async function init(elem = null, v = 0){
 
 
 //часть для запуска
-async function wait(){
+async function wait(p_activeTile, p_mainMap){
 
-    this.data = await init()
+    this.data = await init(null, 0, p_activeTile, p_mainMap)
 
     return this.data
 }
-
-wait().then(data =>{
-
-    
-
-    console.log(data)
-
-
-
-})
