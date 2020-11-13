@@ -1,4 +1,4 @@
-async function init(elem = null, v = 0, p_activeTile, p_mainMap){
+async function init(elem = null, v = 0, p_activeTile, p_mainMap, p_last_length = 0){
 
     let type = p_activeTile.type, 
         tiles,
@@ -44,24 +44,40 @@ async function init(elem = null, v = 0, p_activeTile, p_mainMap){
 
     let restruct = {}
 
-    restruct.items = firstFilter(tiles.items)
+    restruct.items  = firstFilter(tiles.items)
     restruct.passed = firstFilter(tiles.passed)
 
-    
-    restruct.items = restruct.items.filter(elem => elem != null).sort()
+    restruct.items  = restruct.items.filter(elem => elem != null).sort()
     restruct.passed = restruct.passed.filter(elem => elem != null)
 
     v++
-    
-    if(restruct.items.length != restruct.passed.length) {
 
-        return await init(restruct, v, p_activeTile, p_mainMap)
-    
-    }else{ 
+    //сравниваются - новые найденные тайлы из одиночных и просмотренные тайлы
+    //&& последняя длина массива с сущестующей, для реализации одиночного тайла
+    //отдаем коллекцию тайлов для обводки
+    if(restruct.items.length != restruct.passed.length && p_last_length != restruct.items.length) {
 
+        return await init(restruct, v, p_activeTile, p_mainMap, restruct.items.length)
+    
+    //отдаем всего один тайл для его обводки
+    }else if(restruct.items.length != restruct.passed.length && p_last_length == restruct.items.length){ 
+
+        return [{
+
+            x: p_activeTile.x,
+            y: p_activeTile.y,
+            top: true,
+            right: true,
+            bottom: true,
+            left: true
+
+        }]
+
+    }else{
         // console.log('Перебор c числом циклов: '+v)
 
-                //outlineShape.js
+        //outlineShape.js
+        
         return outlineShape(restruct.items, p_mainMap, type)
     }
 

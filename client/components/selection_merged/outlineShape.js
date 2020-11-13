@@ -1,6 +1,5 @@
 function outlineShape(p_tiles, p_mainMap, p_type){
 
-
     let currX, currY,
         frames = [],
         top, right, bottom, left

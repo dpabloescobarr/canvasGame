@@ -27,7 +27,7 @@ window.onload = function() {
     img.addEventListener("load", async function() {
 
             const map = await getMap()
-
+            
             init(map)
             
             setInterval(() => {
@@ -35,7 +35,7 @@ window.onload = function() {
                 ctx.clearRect(-width, -1000, 3000, 3000)
                 draw(map)
 
-            },1000)
+            },30)
 
 
 
@@ -168,19 +168,20 @@ window.onload = function() {
                 if (isInPath) break;
             }
             
-            
-            if (activeTile) activeTile.active = false;
 
             if (isInPath) {
 
                 activeTile = tile;
                 activeTile.active = true;
 
-                //неявная модификация основного массива содержащая ссылку
+                //отчистка при смене одного типа тайлов на другой курсором
                 tiles.map(elem => elem.active = false)
 
             }else{
                 activeTile = null;
+
+                //отчистка при уходе курсора из области самой карты
+                tiles.map(elem => elem.active = false)
 
             }
 
@@ -214,7 +215,7 @@ window.onload = function() {
     canvas.addEventListener('mouseout', function(e) {
 
         if (activeTile) activeTile.active = false;
-
+        
         activeTile = null;
         activeScale.status = false
     })
