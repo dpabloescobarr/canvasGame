@@ -1,8 +1,6 @@
-
-
 window.onload = function() {
 
-    localStorage.setItem('last_position', '15.15')
+    localStorage.setItem('last_position', '1.1')
     localStorage.setItem('last_window', '500 -500')
 
     var canvas     = document.getElementById("canvas"),
@@ -12,7 +10,8 @@ window.onload = function() {
         tileWidth  = 60,
         tileHeight = 30,
         activeTile = null,
-        infoTile,                                           //используется только для запоминания значения чтобы выдать его при клике на тайл
+        infoTile,                                                //используется только для запоминания значения чтобы выдать его при клике на тайл
+        centerRegion,                                        
 
         activeScale = {
             status: false
@@ -23,7 +22,8 @@ window.onload = function() {
         img          = document.createElement("img"),
         lastPosition = localStorage.getItem('last_position'),
         lastWindow   = localStorage.getItem('last_window'),
-        map
+        map,
+        on_off = true                                                    //нужен для первого запуска
 
     //получаем карту
     let getMap = {
@@ -39,8 +39,8 @@ window.onload = function() {
         get_local: function (lastPosition){
 
             let coords      = lastPosition.split('.'),
-				y           = Number(coords[0]),
-				x           = Number(coords[1]),
+                y           = Number(coords[0]),
+                x           = Number(coords[1]),
                 cache       = JSON.parse(localStorage.getItem('cache')),
                 dirtPoints  = [],
                 clearPoints = [],
@@ -84,6 +84,8 @@ window.onload = function() {
                     clearPoints.push(this.lineRegions)
                 }
             })
+            //запоминаем центральную точку данного окружения
+            centerRegion = lastPosition
 
             dirtPoints = null,
             cache      = null,
@@ -95,34 +97,33 @@ window.onload = function() {
 
 
 
-    async function init(lastPosition){
+    function init(){
 
-        let on_off = true
+        if(centerRegion && centerRegion != lastPosition || !centerRegion){
+            
+            console.log('ss')
+            // await getMap.update_cache(lastPosition)
+            map = getMap.get_local(lastPosition)
+            //отрисовка карты
+            drawNewRegions(map)
+            
+        }
 
-        await getMap.update_cache(lastPosition)
+        //оптимизация. При движениях курсора, начинается работа
+        if(on_off || activeTile){
+            
+            this.x = ctx.getTransform().e
+            this.y = ctx.getTransform().f
 
-        map = getMap.get_local(lastPosition)
+            ctx.clearRect(-5000, -5000, 10000, 10000)
+            draw(map)
 
-        //отрисовка карты
-        drawNewRegions(map)
+            if(on_off) on_off = false
 
-        setInterval(() => {
+            activeTile = null
 
-            //оптимизация. При движениях курсора, начинается работа
-            if(on_off || activeTile){
-                
-                this.x = ctx.getTransform().e
-                this.y = ctx.getTransform().f
-
-                ctx.clearRect(-this.x, -this.y, 1500, 1500)
-                draw(map)
-
-                if(on_off) on_off = false
-
-                activeTile = null
-            }
-
-        },40)
+        }
+        requestAnimationFrame(init)
 
     }
 
@@ -135,8 +136,7 @@ window.onload = function() {
         //начальная видимая область карты
         ctx.translate(lastWindow[0], lastWindow[1])
 
-        init(lastPosition)
-
+        init()
     })
 
     let before = {
@@ -159,14 +159,14 @@ window.onload = function() {
 
     function drawNewRegions(map) {
 
+        tiles = []
+
         for (let x = 0; x < map.length; x++) {
-            
             for (let y = 0; y < map[0].length; y++) {
                 
                 tiles.push({ x: map[x][y].x, y: map[x][y].y, type: map[x][y].type, region: map[x][y].region, active: false })
             }
         }
-        // console.log(tiles)
     }
     
     async function draw(p_mainMap) {
@@ -339,39 +339,17 @@ window.onload = function() {
 
     })
 
-    canvas.addEventListener('mouseup', async function(e){
+    canvas.addEventListener('mouseup', (e) => {
 
         activeScale.status = false
 
         if(infoTile){
             
-            this.x = ctx.getTransform().e
-            this.y = ctx.getTransform().f
-
-            let actTile = infoTile.region.split('.')
-                actTile = {
-
-                    activeX: actTile[0],
-                    activeY: actTile[1]
-                }
-
-            let lastPos = lastPosition.split('.')
-                lastPos = {
-
-                    lastX: lastPos[0],
-                    lastY: lastPos[1]
-                }
-            //если последняя позиция курсора изменилась, то загружаем другие регионы
-            if(actTile.activeX != lastPos.lastX || actTile.activeY != lastPos.lastY){
-
-                //загрузка карты из кэша
-                // console.log(map)
-
-            }
-            
+            let x = ctx.getTransform().e,
+                y = ctx.getTransform().f
 
             //записываем последнюю позицию экрана на карте
-            localStorage.setItem('last_window', `${this.x} ${this.y}`)
+            localStorage.setItem('last_window', `${x} ${y}`)
 
             //записываем последнюю координату где находился игрок
             localStorage.setItem('last_position', infoTile.region)
