@@ -13,9 +13,10 @@ async function init(elem = null, v = 0, p_activeTile, p_mainMap, p_last_length =
 
     }else{
 
-        tiles = {}
-        tiles.items = elem.items
-        tiles.passed = elem.passed
+        tiles = {
+            items:  elem.items,
+            passed: elem.passed
+        }
 
     }
 
@@ -35,6 +36,7 @@ async function init(elem = null, v = 0, p_activeTile, p_mainMap, p_last_length =
     }
 
 
+
     otherTiles.forEach((elem, i, arr) => {
         
         tiles.items = tiles.items.concat(arr[i].items)
@@ -42,10 +44,10 @@ async function init(elem = null, v = 0, p_activeTile, p_mainMap, p_last_length =
 
     })
 
-    let restruct = {}
-
-    restruct.items  = firstFilter(tiles.items)
-    restruct.passed = firstFilter(tiles.passed)
+    let restruct = {
+        items:  firstFilter(tiles.items),
+        passed: firstFilter(tiles.passed)
+    }
 
     restruct.items  = restruct.items.filter(elem => elem != null).sort()
     restruct.passed = restruct.passed.filter(elem => elem != null)

@@ -1,4 +1,9 @@
+
+
 window.onload = function() {
+
+    localStorage.setItem('last_position', '15.15')
+    localStorage.setItem('last_window', '500 -500')
 
     var canvas     = document.getElementById("canvas"),
         ctx        = canvas.getContext("2d"),
@@ -7,56 +12,163 @@ window.onload = function() {
         tileWidth  = 60,
         tileHeight = 30,
         activeTile = null,
+        infoTile,                                           //используется только для запоминания значения чтобы выдать его при клике на тайл
 
         activeScale = {
             status: false
-        };
+        },
 
-    let tiles = [],
+        tiles = [],
         newStroke,
-        img = document.createElement("img")
-    
-        
-    let getMap = async function (){
+        img          = document.createElement("img"),
+        lastPosition = localStorage.getItem('last_position'),
+        lastWindow   = localStorage.getItem('last_window'),
+        map
 
-        this.map = await new sendFetch(activeTile, 'getmap', 'GET')
+    //получаем карту
+    let getMap = {
 
-        return JSON.parse(this.map)
-    }
+        //запрашиваем расширенную карту для кэша
+        update_cache: async function (lastPosition){
 
-    img.addEventListener("load", async function() {
+            this.map   = await new sendFetch(lastPosition, 'getsql', 'POST')
+            localStorage.setItem('cache', this.map)
 
-            const map = await getMap()
-            
-            init(map)
-            
-            setInterval(() => {
+        },
+        //получаем нужные регионы из кэша
+        get_local: function (lastPosition){
 
-                ctx.clearRect(-width, -1000, 3000, 3000)
-                draw(map)
+            let coords      = lastPosition.split('.'),
+				y           = Number(coords[0]),
+				x           = Number(coords[1]),
+                cache       = JSON.parse(localStorage.getItem('cache')),
+                dirtPoints  = [],
+                clearPoints = [],
 
-            },30)
+                regions = [`${y-1}.${x-1}`, `${y-1}.${x}`, `${y-1}.${x+1}`, `${y}.${x-1}`, `${y}.${x}`, `${y}.${x+1}`, `${y+1}.${x-1}`,`${y+1}.${x}`, `${y+1}.${x+1}`]
+                    .filter(x => !/-/g.test(x))
+                    
+            dirtPoints[0] = []
 
+            for(let v = 0, i = 0; v < cache[i].length; v++){
 
+                if(regions.find(elem => elem == cache[i][v].region)){
 
-    })
-    
-    img.src = "tileset.png"
+                    dirtPoints[i][v] = {
 
-    ctx.translate(width / 2, 10)
+                        type:   cache[i][v].type,
+                        region: cache[i][v].region,
+                        x:      cache[i][v].x,
+                        y:      cache[i][v].y
+                        
+                    }
+                }
 
+                if(v == cache[i].length - 1){
+                    v = -1
+                    i++
 
-    function init(map) {
+                    if(i == cache.length - 1) break
 
-        for (var x = 0; x < map.length; x++) {
-            for (var y = 0; y < map[x].length; y++) {
-                tiles.push({ x, y, type: map[x][y], active: false })
+                    dirtPoints[i] = []
 
+                }
             }
+
+            dirtPoints.map(elem =>{
+
+                if(elem.length){
+
+                    this.lineRegions = elem.filter(item => item != null && item != undefined)
+
+                    clearPoints.push(this.lineRegions)
+                }
+            })
+
+            dirtPoints = null,
+            cache      = null,
+            regions    = null
+
+            return clearPoints
         }
     }
 
 
+
+    async function init(lastPosition){
+
+        let on_off = true
+
+        await getMap.update_cache(lastPosition)
+
+        map = getMap.get_local(lastPosition)
+
+        //отрисовка карты
+        drawNewRegions(map)
+
+        setInterval(() => {
+
+            //оптимизация. При движениях курсора, начинается работа
+            if(on_off || activeTile){
+                
+                this.x = ctx.getTransform().e
+                this.y = ctx.getTransform().f
+
+                ctx.clearRect(-this.x, -this.y, 1500, 1500)
+                draw(map)
+
+                if(on_off) on_off = false
+
+                activeTile = null
+            }
+
+        },40)
+
+    }
+
+
+    img.addEventListener("load", function() {
+
+        lastPosition = before.position(lastPosition)
+        lastWindow   = before.window(lastWindow).split(' ')
+    
+        //начальная видимая область карты
+        ctx.translate(lastWindow[0], lastWindow[1])
+
+        init(lastPosition)
+
+    })
+
+    let before = {
+
+        position: function(lastPosition){
+
+            if(lastPosition) return lastPosition
+                else return '1.1'
+        },
+
+        window: function(lastWindow){
+
+            if(lastWindow) return lastWindow
+                else return '498.5 -500'
+        }
+    }
+    
+    img.src = "tileset.png"
+    
+
+    function drawNewRegions(map) {
+
+        for (let x = 0; x < map.length; x++) {
+            
+            for (let y = 0; y < map[0].length; y++) {
+                
+                tiles.push({ x: map[x][y].x, y: map[x][y].y, type: map[x][y].type, region: map[x][y].region, active: false })
+            }
+        }
+        // console.log(tiles)
+    }
+    
     async function draw(p_mainMap) {
 
         if(activeTile){
@@ -72,10 +184,10 @@ window.onload = function() {
 
                         tiles[i].active = true
 
-                        if(stroke.top)  tiles[i].top = stroke.top
-                        if(stroke.right)  tiles[i].right= stroke.right
-                        if(stroke.bottom)  tiles[i].bottom = stroke.bottom
-                        if(stroke.left)  tiles[i].left = stroke.left
+                        if(stroke.top)    tiles[i].top    = stroke.top
+                        if(stroke.right)  tiles[i].right  = stroke.right
+                        if(stroke.bottom) tiles[i].bottom = stroke.bottom
+                        if(stroke.left)   tiles[i].left   = stroke.left
 
                     }
                 }
@@ -83,45 +195,67 @@ window.onload = function() {
 
         }
         
-        tiles.forEach(elem => drawImageTile(elem))
+        tiles.map(elem => drawImageTile(elem))
     }
 
     //здесь сдвиг на одну сторону по часовой. т.е bottom это left
     //карта сторон тайла задана по обзору на массив, а не визуально
-    function flag(p_top, p_right, p_bottom, p_left){
+    function smartStroke(p_mode, p_type, p_top, p_right, p_bottom, p_left){
 
-        let construct = new Path2D()
+        let construct = new Path2D(),
+            noStroke = [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+            fit = 8
 
-        if(p_top) {
-            construct.moveTo(-tileWidth / 2 + 2, tileHeight / 2 + 9)
-            construct.lineTo(3, 9)
-        }
-        if(p_right){
+        //оптимизация. все тайлы которые находятся выше, не обводятся
+        noStroke.find(elem =>{
 
-            construct.moveTo(2, tileHeight + 9)
-            construct.lineTo(-tileWidth / 2 + 2, tileHeight / 2 + 9)
-        }
-        if(p_bottom){
+            if(p_type && elem == p_type) p_mode = true
 
-            construct.moveTo(tileWidth / 2 + 2, tileHeight / 2 + 9)
-            construct.lineTo(2, tileHeight + 9)
+        })
 
-        }
-        if(p_left){
+        if(p_mode){
+
+            construct.lineTo(tileWidth / 2 + 2, tileHeight / 2 + fit)
+            construct.lineTo(2, tileHeight + fit)
+            construct.lineTo(-tileWidth / 2 + 2, tileHeight / 2 + fit)
+            construct.lineTo(3, fit)
             
-            construct.moveTo(2, 9)
-            construct.lineTo(tileWidth / 2 + 2, tileHeight / 2 + 9)
+            return construct
+
+        }else{
+
+            if(p_top) {
+
+                construct.moveTo(-tileWidth / 2 + 2, tileHeight / 2 + fit)
+                construct.lineTo(3, fit)
+            }
+            if(p_right){
+
+
+                construct.moveTo(2, tileHeight + fit)
+                construct.lineTo(-tileWidth / 2 + 2, tileHeight / 2 + fit)
+            }
+            if(p_bottom){
+
+
+                construct.moveTo(tileWidth / 2 + 2, tileHeight / 2 + fit)
+                construct.lineTo(2, tileHeight + fit)
+
+            }
+            if(p_left){
+                
+
+                construct.moveTo(2, fit)
+                construct.lineTo(tileWidth / 2 + 2, tileHeight / 2 + fit)
+            }
+
+            ctx.beginPath()
+            ctx.lineWidth = 3
+            ctx.stroke(construct);
+            ctx.closePath()
         }
 
-        return construct
     }
-
-    let detector = new Path2D()
-        detector.moveTo(2, 9)
-        detector.lineTo(tileWidth / 2 + 2, tileHeight / 2 + 9)
-        detector.lineTo(2, tileHeight + 9)
-        detector.lineTo(-tileWidth / 2 + 2, tileHeight / 2 + 9)
-        detector.lineTo(3, 9)
 
     //отрисовка тайлов-картинок и одного квадрата вокруг тайл-картинки
     function drawImageTile({ x, y, type, active, top, right, bottom, left }) {
@@ -133,70 +267,69 @@ window.onload = function() {
         ctx.translate(xx, yy)
 
 
-        ctx.drawImage(img, type * tileWidth, 0, tileWidth, img.height,
-        	-tileWidth / 2, 0, tileWidth, img.height);
-
         if (active) ctx.strokeStyle = 'red'
             else ctx.strokeStyle = '#ffffff00'
 
+        //обводим за тайлом
+        smartStroke(false, type, top, false, false, left)
 
-        ctx.beginPath()
-        ctx.lineWidth = 3
-        ctx.stroke(flag(top, right, bottom, left));
-        ctx.closePath()
+        ctx.drawImage(img, type * tileWidth, 0, tileWidth, img.height,
+        	-tileWidth / 2, 0, tileWidth, img.height);
+
+        //обводим перед тайлом
+        smartStroke(false, type, false, right, bottom, false)
+
         ctx.restore();
 
     }
 
+    canvas.addEventListener('mousemove', function(e){
 
+        let tile,
+            isInPath = false
 
+        for (tile of tiles) {
 
-    canvas.addEventListener('mousemove', (e)=>{
+            isInPath = ctx.isPointInPath(
+                smartStroke(true),
+                e.clientX - (tile.x - tile.y) * tileWidth / 2,
+                e.clientY - (tile.x + tile.y) * tileHeight / 2,
 
-            let tile,
-                isInPath = false
-
-            for (tile of tiles) {
-
-                isInPath = ctx.isPointInPath(
-                    detector,
-                    e.clientX - (tile.x - tile.y) * tileWidth / 2,
-                    e.clientY - (tile.x + tile.y) * tileHeight / 2,
-
-                )
-                
-                if (isInPath) break;
-            }
+            )
             
-
-            if (isInPath) {
-
-                activeTile = tile;
-                activeTile.active = true;
-
-                //отчистка при смене одного типа тайлов на другой курсором
-                tiles.map(elem => elem.active = false)
-
-            }else{
-                activeTile = null;
-
-                //отчистка при уходе курсора из области самой карты
-                tiles.map(elem => elem.active = false)
-
-            }
-
-            //система захвата курсором карты для масштабирования
-            if(activeScale.status){
-
-                ctx.setTransform(1, 0, 0, 1, e.clientX - activeScale.diffX, e.clientY - activeScale.diffY)
-
-            }
+            if (isInPath) break
+        }
         
 
+        if(isInPath) {
+
+            infoTile          = tile
+            activeTile        = tile
+            activeTile.active = true
+
+            //очистка при смене одного типа тайлов на другой курсором
+            tiles.map(elem => elem.active = false)
+
+        }else{
+            activeTile = null;
+
+            //очистка при уходе курсора из области самой карты
+            tiles.map(elem => elem.active = false)
+
+        }
+
+        //система захвата курсором карты для масштабирования
+        if(activeScale.status){
+
+            ctx.setTransform(1, 0, 0, 1, e.clientX - activeScale.diffX, e.clientY - activeScale.diffY)
+
+        }
+
     })
-    //фиксируем расстояние курсора на холсте для правильного ведения карты
+
     canvas.addEventListener('mousedown', function(e){
 
+        //фиксируем расстояние курсора на холсте для правильного ведения карты
         activeScale = {
 
             status: true,
@@ -206,9 +339,48 @@ window.onload = function() {
 
     })
 
-    canvas.addEventListener('mouseup', function(e){
+    canvas.addEventListener('mouseup', async function(e){
 
         activeScale.status = false
+
+        if(infoTile){
+            
+            this.x = ctx.getTransform().e
+            this.y = ctx.getTransform().f
+
+            let actTile = infoTile.region.split('.')
+                actTile = {
+
+                    activeX: actTile[0],
+                    activeY: actTile[1]
+                }
+
+            let lastPos = lastPosition.split('.')
+                lastPos = {
+
+                    lastX: lastPos[0],
+                    lastY: lastPos[1]
+                }
+            //если последняя позиция курсора изменилась, то загружаем другие регионы
+            if(actTile.activeX != lastPos.lastX || actTile.activeY != lastPos.lastY){
+
+                //загрузка карты из кэша
+                // console.log(map)
+
+            }
+            
+
+            //записываем последнюю позицию экрана на карте
+            localStorage.setItem('last_window', `${this.x} ${this.y}`)
+
+            //записываем последнюю координату где находился игрок
+            localStorage.setItem('last_position', infoTile.region)
+
+            //перезаписываем переменную с последними координатами,
+            //нужно для подгрузки окружающих регионов
+            lastPosition = localStorage.getItem('last_position')
+
+        }
 
     })
 
@@ -221,11 +393,9 @@ window.onload = function() {
     })
 
     canvas.addEventListener('click', async function(e){
-
-
-        const data = await new sendFetch(activeTile, 'currtile', 'POST')
-    
-
+        
+        // const data = await new sendFetch(infoTile, 'currtile', 'POST')
+        console.log(infoTile)
     })
     
 

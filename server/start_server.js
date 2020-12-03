@@ -1,8 +1,12 @@
-const http = require('http');
-const fs = require('fs');
+const http      = require('http'),
+	  fs        = require('fs'),
+	  {Console} = require('console'),
+	  sendSql   = require('./class/sendSql.js'),
+	  {send}    = require('process')
 
 
-
+	//   let ss = new sendSql('POST', 'sdas')
+	//   	 ss.generateMap()
 
 http.createServer((req, res) => {
 
@@ -14,75 +18,69 @@ http.createServer((req, res) => {
 		'Content-Type': 'application/x-www-form-urlencoded'
 	});
 
-	function openMap(mode, elem = ''){
+	async function openMap(mode, elem = ''){
 
-		if(elem != 'null' && elem != ''){
-		
-			elem = JSON.parse(elem)
+		const send = new sendSql(mode, elem)
 
-		}else if(elem == 'null'){
+		if(mode == 'getsql'){
 
-			mode = false
+			this.data = await send.getRegionSql()
 
 		}
+		// else if(mode == 'getcache'){
 
-		this.map  = __dirname.replace('\server', '')+'map.json'
-		this.file = fs.readFileSync(this.map, 'utf8', function (err, data) {
+		// 	this.data = await send.getRegionCache()
 
-			if (err) throw err;
+		// }
 
-			return data
-
-		});
-
-		switch (mode){
-
-			case 'open':
-				return this.file
-
-			case 'change':
-
-				this.file     = JSON.parse(this.file)
-				this.findTile = this.file[elem.x][elem.y]
-
-				//проверка на существование типа тайла из запроса с основной картой
-				if(this.findTile == elem.index) return 'true'
-					else return 'false'
-
-			default:
-				return 'false'
-		}
+		return JSON.stringify(this.data)
+	
 	}
 
+	(async () => {
 
-	if (req.method == 'POST') {
-		
-		let body = ''
-		
-		req.on('data', chunk => {
-			body += chunk.toString()
-		})
-		
-		req.on('end', () => {
-
-			this.findTile = openMap('change', body)
-
-			res.end(this.findTile)
-		
+		if (req.method == 'POST') {
 			
-		})
+			let body = ''
+			
 
-	}else if (req.method == 'GET'){
+			req.on('data', chunk => {
+				body += chunk.toString()
+			})
 
-		
-		switch(req.url){
 
-			case '/getmap':
-				res.end(openMap('open'));
+			if(req.url == '/getsql'){
+
+
+				req.on('end', async() => {
+
+					this.findTile = await openMap('getsql', body)
+					res.end(this.findTile)
+				})
+
+			}
+			// else if(req.url == '/getcache'){
+
+
+			// 	req.on('end', async() => {
+
+			// 		this.findTile = await openMap('getcache', body)
+			// 		res.end(this.findTile)
+			// 	})
+
+			// }
 		}
+		// else if (req.method == 'GET'){
+
+		// 	switch(req.url){
+
+		// 		case '/firstget':
+		// 			res.end(await openMap('first'));
+		// 	}
 
 
-	}
+		// }
+	})()
 
 
 }).listen(3000)

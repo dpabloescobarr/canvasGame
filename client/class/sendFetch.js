@@ -5,7 +5,7 @@ class sendFetch{
         this.p_activeTile = p_activeTile
         this.operation = operation
         this.mode = mode
-        
+
         return this.init()
 
     }
