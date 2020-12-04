@@ -64,10 +64,11 @@ module.exports = class sendSql{
 
 		return new Promise(resolve => {
 
+			let elem = this.elem
 
 			this.sql = "SELECT type, region, y, x FROM commercial_card WHERE region IN ?";
 
-			this.values = nearesTile(this.elem, 'cache')
+			this.values = nearesTile(elem)
 
 			this.connection.query(this.sql, [[this.values]], function (err, result) {
 
@@ -75,23 +76,41 @@ module.exports = class sendSql{
 				this.main = []
 				this.array = []
 				this.pureReg = []
+					
+				let resultX, resultY, coords, x, y
 
 				for(let i = 0; result.length > i; i++){
 
-					this.x      = result[i].x
-					this.y      = result[i].y
+					resultX = result[i].x,
+					resultY = result[i].y,
+					coords  = elem.split('.'),
+					y       = Number(coords[0]),
+					x       = Number(coords[1])
+
 					this.strReg = String(result[i].region)
 
-					if(!this.array[this.x]) this.array[this.x] = []
+					if(!this.array[resultX]) this.array[resultX] = []
 
-					this.array[this.x][this.y] = {
+					let trigersRegions = [
+
+                        `${y-4}.${x-4}`, `${y-4}.${x-3}`, `${y-4}.${x-2}`, `${y-4}.${x-1}`,`${y-4}.${x}`,`${y-4}.${x+1}`,`${y-4}.${x+2}`, `${y-4}.${x+3}`, `${y-4}.${x+4}`,
+                        `${y-3}.${x+4}`,`${y-2}.${x+4}`,`${y-1}.${x+4}`,`${y}.${x+4}`,`${y+1}.${x+4}`,`${y+2}.${x+4}`,`${y+3}.${x+4}`,
+                        `${y+4}.${x-4}`, `${y+4}.${x-3}`, `${y+4}.${x-2}`, `${y+4}.${x-1}`,`${y+4}.${x}`,`${y+4}.${x+1}`,`${y+4}.${x+2}`, `${y+4}.${x+3}`, `${y+4}.${x+4}`,
+                        `${y-3}.${x-4}`,`${y-2}.${x-4}`,`${y-1}.${x-4}`,`${y}.${x-4}`,`${y+1}.${x-4}`,`${y+2}.${x-4}`,`${y+3}.${x-4}`
+                        
+                    ].filter(x => !/-/g.test(x))
+					
+
+					this.array[resultX][resultY] = {
 
 						type:   result[i].type,
 						region: result[i].region,
-						x:      this.x,
-						y:      this.y
+						x:      resultX,
+						y:      resultY,
+						triger: (trigersRegions.find(item => item == this.strReg)) ? true : false
 
 						}
+					
 				}
 
 				//фильтруем сначала изнутри потом наружний массив
@@ -133,9 +152,6 @@ module.exports = class sendSql{
 					`${y+4}.${x-5}`, `${y+4}.${x-4}`, `${y+4}.${x-3}`, `${y+4}.${x-2}`, `${y+4}.${x-1}`,      `${y+4}.${x}`,      `${y+4}.${x+1}`,`${y+4}.${x+2}`, `${y+4}.${x+3}`, `${y+4}.${x+4}`, `${y+4}.${x+5}`,
 					`${y+5}.${x-5}`, `${y+5}.${x-4}`, `${y+5}.${x-3}`, `${y+5}.${x-2}`, `${y+5}.${x-1}`,      `${y+5}.${x}`,      `${y+5}.${x+1}`,`${y+5}.${x+2}`, `${y+5}.${x+3}`, `${y+5}.${x+4}`, `${y+5}.${x+5}`
 				]
-                // regions = [
-				// 	`${y-1}.${x-1}`, `${y-1}.${x}`, `${y-1}.${x+1}`, `${y}.${x-1}`, `${y}.${x}`, `${y}.${x+1}`, `${y+1}.${x-1}`,`${y+1}.${x}`, `${y+1}.${x+1}`
-				// ]
 				
 			regions = regions.filter(x => !/-/g.test(x))
 
