@@ -1,11 +1,12 @@
-const { timeStamp } = require("console");
-const { resolve } = require("path");
-const { inherits } = require("util");
+// const { timeStamp } = require("console");
+
+const fs = require('fs');
+const { resolve } = require('path');
 
 module.exports = class sendSql{
 
 	constructor(mode, elem){
-
+		
 		//очистка от кавычек так как данные в json
 		this.elem  = elem.replace(/\"/g, '')
 		this.mode  = mode
@@ -31,44 +32,63 @@ module.exports = class sendSql{
 		});
 
 	}
-	//метод получения регионов
+	//получение тайлсетов в зашифрованном виде json текста
+	getImgSets(){
 
-	// getRegionCache(){
+		const dir = './server/models'
 
-	// 	this.values = nearesTile(this.elem)
+		let getFiles = new Promise(resolve =>{
 
+			fs.readdir(dir, (err, files) => {
+				resolve(files)
+			})
+		})
 
-			
+		async function toReadFile(file_name){
 
+			return await new Promise(resolve => {
 
-	// 	function nearesTile(elem){
+				fs.readFile(`${dir}/${file_name}`, function (err, data) {   
 
-	// 		let coords  = elem.split('.'),
-	// 			y       = Number(coords[0]),
-	// 			x       = Number(coords[1]),
+					if (err) throw err
 
-	// 			regions = [
-	// 				`${y-1}.${x-1}`, `${y-1}.${x}`, `${y-1}.${x+1}`, `${y}.${x-1}`, `${y}.${x}`, `${y}.${x+1}`, `${y+1}.${x-1}`,`${y+1}.${x}`, `${y+1}.${x+1}`
-	// 			]
+					const base64 = Buffer.from(data).toString('base64');
 
-	// 		regions = regions.filter(x => !/-/g.test(x))
+					resolve(base64)
+					
+				})
+			})
+		}
 
-	// 		return [regions]
+		async function waitFiles(){
 
-	// 	}
+			const files = await getFiles
+			let images = [],
+				oneImg
 
+			for(let file of files){
 
-	// }
+				oneImg = await toReadFile(file)
+				images.push(oneImg)
+			}
 
+			return images
+
+		}
+
+		return waitFiles()
+
+	}
+	//метод подготовки кэширования
 	getRegionSql(){
-
+		
 		return new Promise(resolve => {
 
 			let elem = this.elem
 
-			this.sql = "SELECT type, region, y, x FROM commercial_card WHERE region IN ?";
+			this.sql = "SELECT type, tileset, region, y, x FROM commercial_card WHERE region IN ?";
 
-			this.values = nearesTile(elem)
+			this.values = nearesTile(elem, 'cache')
 
 			this.connection.query(this.sql, [[this.values]], function (err, result) {
 
@@ -77,40 +97,32 @@ module.exports = class sendSql{
 				this.array = []
 				this.pureReg = []
 					
-				let resultX, resultY, coords, x, y
+				let resultX, 
+					resultY,
+					trigersRegions
 
 				for(let i = 0; result.length > i; i++){
 
 					resultX = result[i].x,
-					resultY = result[i].y,
-					coords  = elem.split('.'),
-					y       = Number(coords[0]),
-					x       = Number(coords[1])
+					resultY = result[i].y
 
 					this.strReg = String(result[i].region)
 
 					if(!this.array[resultX]) this.array[resultX] = []
 
-					let trigersRegions = [
-
-                        `${y-4}.${x-4}`, `${y-4}.${x-3}`, `${y-4}.${x-2}`, `${y-4}.${x-1}`,`${y-4}.${x}`,`${y-4}.${x+1}`,`${y-4}.${x+2}`, `${y-4}.${x+3}`, `${y-4}.${x+4}`,
-                        `${y-3}.${x+4}`,`${y-2}.${x+4}`,`${y-1}.${x+4}`,`${y}.${x+4}`,`${y+1}.${x+4}`,`${y+2}.${x+4}`,`${y+3}.${x+4}`,
-                        `${y+4}.${x-4}`, `${y+4}.${x-3}`, `${y+4}.${x-2}`, `${y+4}.${x-1}`,`${y+4}.${x}`,`${y+4}.${x+1}`,`${y+4}.${x+2}`, `${y+4}.${x+3}`, `${y+4}.${x+4}`,
-                        `${y-3}.${x-4}`,`${y-2}.${x-4}`,`${y-1}.${x-4}`,`${y}.${x-4}`,`${y+1}.${x-4}`,`${y+2}.${x-4}`,`${y+3}.${x-4}`
-                        
-                    ].filter(x => !/-/g.test(x))
+					trigersRegions = nearesTile(elem, 'trigers')
 					
 
 					this.array[resultX][resultY] = {
 
-						type:   result[i].type,
-						region: result[i].region,
-						x:      resultX,
-						y:      resultY,
-						triger: (trigersRegions.find(item => item == this.strReg)) ? true : false
+						type:    result[i].type,
+						tileset: result[i].tileset,
+						region:  result[i].region,
+						x:       resultX,
+						y:       resultY,
+						triger:  (trigersRegions.find(item => item == this.strReg)) ? true : false
 
 						}
-					
 				}
 
 				//фильтруем сначала изнутри потом наружний массив
@@ -119,7 +131,6 @@ module.exports = class sendSql{
 					if(elem != null && elem != undefined){
 
 						this.pureReg[index] = elem.filter(x => x != null && x != undefined)
-
 					}
 				})
 				this.pureReg = this.pureReg.filter(x => x != null && x != undefined)
@@ -130,29 +141,47 @@ module.exports = class sendSql{
 			});
 		})
 
-		function nearesTile(elem){
+		function nearesTile(elem, mode){
 
 			let coords  = elem.split('.'),
 				y       = Number(coords[0]),
 				x       = Number(coords[1]),
+				regions
 
-				regions = [
-
-					`${y-5}.${x-5}`, `${y-5}.${x-4}`, `${y-5}.${x-3}`, `${y-5}.${x-2}`, `${y-5}.${x-1}`,      `${y-5}.${x}`,     `${y-5}.${x+1}`,`${y-5}.${x+2}`, `${y-5}.${x+3}`, `${y-5}.${x+4}`, `${y-5}.${x+5}`,
-					`${y-4}.${x-5}`, `${y-4}.${x-4}`, `${y-4}.${x-3}`, `${y-4}.${x-2}`, `${y-4}.${x-1}`,      `${y-4}.${x}`,     `${y-4}.${x+1}`,`${y-4}.${x+2}`, `${y-4}.${x+3}`, `${y-4}.${x+4}`, `${y-4}.${x+5}`,
-					`${y-3}.${x-5}`, `${y-3}.${x-4}`, `${y-3}.${x-3}`, `${y-3}.${x-2}`, `${y-3}.${x-1}`,      `${y-3}.${x}`,     `${y-3}.${x+1}`,`${y-3}.${x+2}`, `${y-3}.${x+3}`, `${y-3}.${x+4}`, `${y-3}.${x+5}`,
-					`${y-2}.${x-5}`, `${y-2}.${x-4}`, `${y-2}.${x-3}`, `${y-2}.${x-2}`, `${y-2}.${x-1}`,      `${y-2}.${x}`,     `${y-2}.${x+1}`,`${y-2}.${x+2}`, `${y-2}.${x+3}`, `${y-2}.${x+4}`, `${y-2}.${x+5}`,
-					`${y-1}.${x-5}`, `${y-1}.${x-4}`, `${y-1}.${x-3}`, `${y-1}.${x-2}`, `${y-1}.${x-1}`,      `${y-1}.${x}`,     `${y-1}.${x+1}`,`${y-1}.${x+2}`, `${y-1}.${x+3}`, `${y-1}.${x+4}`, `${y-1}.${x+5}`,
-		
-					`${y}.${x-5}`, `${y}.${x-4}`,    `${y}.${x-3}`,    `${y}.${x-2}`,   `${y}.${x-1}`,        `${y}.${x}`,       `${y}.${x+1}`,   `${y}.${x+2}`,     `${y}.${x+3}`, `${y}.${x+4}`,   `${y}.${x+5}`,
-					
-					`${y+1}.${x-5}`, `${y+1}.${x-4}`, `${y+1}.${x-3}`, `${y+1}.${x-2}`, `${y+1}.${x-1}`,      `${y+1}.${x}`,      `${y+1}.${x+1}`,`${y+1}.${x+2}`, `${y+1}.${x+3}`, `${y+1}.${x+4}`, `${y+1}.${x+5}`,
-					`${y+2}.${x-5}`, `${y+2}.${x-4}`, `${y+2}.${x-3}`, `${y+2}.${x-2}`, `${y+2}.${x-1}`,      `${y+2}.${x}`,      `${y+2}.${x+1}`,`${y+2}.${x+2}`, `${y+2}.${x+3}`, `${y+2}.${x+4}`, `${y+2}.${x+5}`,
-					`${y+3}.${x-5}`, `${y+3}.${x-4}`, `${y+3}.${x-3}`, `${y+3}.${x-2}`, `${y+3}.${x-1}`,      `${y+3}.${x}`,      `${y+3}.${x+1}`,`${y+3}.${x+2}`, `${y+3}.${x+3}`, `${y+3}.${x+4}`, `${y+3}.${x+5}`,
-					`${y+4}.${x-5}`, `${y+4}.${x-4}`, `${y+4}.${x-3}`, `${y+4}.${x-2}`, `${y+4}.${x-1}`,      `${y+4}.${x}`,      `${y+4}.${x+1}`,`${y+4}.${x+2}`, `${y+4}.${x+3}`, `${y+4}.${x+4}`, `${y+4}.${x+5}`,
-					`${y+5}.${x-5}`, `${y+5}.${x-4}`, `${y+5}.${x-3}`, `${y+5}.${x-2}`, `${y+5}.${x-1}`,      `${y+5}.${x}`,      `${y+5}.${x+1}`,`${y+5}.${x+2}`, `${y+5}.${x+3}`, `${y+5}.${x+4}`, `${y+5}.${x+5}`
-				]
+			switch(mode){
 				
+				//регионы для кэширования
+				case 'cache':
+					regions = [
+
+						`${y-5}.${x-5}`, `${y-5}.${x-4}`, `${y-5}.${x-3}`, `${y-5}.${x-2}`, `${y-5}.${x-1}`,      `${y-5}.${x}`,     `${y-5}.${x+1}`,`${y-5}.${x+2}`, `${y-5}.${x+3}`, `${y-5}.${x+4}`, `${y-5}.${x+5}`,
+						`${y-4}.${x-5}`, `${y-4}.${x-4}`, `${y-4}.${x-3}`, `${y-4}.${x-2}`, `${y-4}.${x-1}`,      `${y-4}.${x}`,     `${y-4}.${x+1}`,`${y-4}.${x+2}`, `${y-4}.${x+3}`, `${y-4}.${x+4}`, `${y-4}.${x+5}`,
+						`${y-3}.${x-5}`, `${y-3}.${x-4}`, `${y-3}.${x-3}`, `${y-3}.${x-2}`, `${y-3}.${x-1}`,      `${y-3}.${x}`,     `${y-3}.${x+1}`,`${y-3}.${x+2}`, `${y-3}.${x+3}`, `${y-3}.${x+4}`, `${y-3}.${x+5}`,
+						`${y-2}.${x-5}`, `${y-2}.${x-4}`, `${y-2}.${x-3}`, `${y-2}.${x-2}`, `${y-2}.${x-1}`,      `${y-2}.${x}`,     `${y-2}.${x+1}`,`${y-2}.${x+2}`, `${y-2}.${x+3}`, `${y-2}.${x+4}`, `${y-2}.${x+5}`,
+						`${y-1}.${x-5}`, `${y-1}.${x-4}`, `${y-1}.${x-3}`, `${y-1}.${x-2}`, `${y-1}.${x-1}`,      `${y-1}.${x}`,     `${y-1}.${x+1}`,`${y-1}.${x+2}`, `${y-1}.${x+3}`, `${y-1}.${x+4}`, `${y-1}.${x+5}`,
+			
+						`${y}.${x-5}`, `${y}.${x-4}`,    `${y}.${x-3}`,    `${y}.${x-2}`,   `${y}.${x-1}`,        `${y}.${x}`,       `${y}.${x+1}`,   `${y}.${x+2}`,     `${y}.${x+3}`, `${y}.${x+4}`,   `${y}.${x+5}`,
+						
+						`${y+1}.${x-5}`, `${y+1}.${x-4}`, `${y+1}.${x-3}`, `${y+1}.${x-2}`, `${y+1}.${x-1}`,      `${y+1}.${x}`,      `${y+1}.${x+1}`,`${y+1}.${x+2}`, `${y+1}.${x+3}`, `${y+1}.${x+4}`, `${y+1}.${x+5}`,
+						`${y+2}.${x-5}`, `${y+2}.${x-4}`, `${y+2}.${x-3}`, `${y+2}.${x-2}`, `${y+2}.${x-1}`,      `${y+2}.${x}`,      `${y+2}.${x+1}`,`${y+2}.${x+2}`, `${y+2}.${x+3}`, `${y+2}.${x+4}`, `${y+2}.${x+5}`,
+						`${y+3}.${x-5}`, `${y+3}.${x-4}`, `${y+3}.${x-3}`, `${y+3}.${x-2}`, `${y+3}.${x-1}`,      `${y+3}.${x}`,      `${y+3}.${x+1}`,`${y+3}.${x+2}`, `${y+3}.${x+3}`, `${y+3}.${x+4}`, `${y+3}.${x+5}`,
+						`${y+4}.${x-5}`, `${y+4}.${x-4}`, `${y+4}.${x-3}`, `${y+4}.${x-2}`, `${y+4}.${x-1}`,      `${y+4}.${x}`,      `${y+4}.${x+1}`,`${y+4}.${x+2}`, `${y+4}.${x+3}`, `${y+4}.${x+4}`, `${y+4}.${x+5}`,
+						`${y+5}.${x-5}`, `${y+5}.${x-4}`, `${y+5}.${x-3}`, `${y+5}.${x-2}`, `${y+5}.${x-1}`,      `${y+5}.${x}`,      `${y+5}.${x+1}`,`${y+5}.${x+2}`, `${y+5}.${x+3}`, `${y+5}.${x+4}`, `${y+5}.${x+5}`
+					]
+					break
+
+				//тригеры регионов для обновления кэша в дальнейшем
+				case 'trigers':
+					regions = [
+
+                        `${y-4}.${x-4}`, `${y-4}.${x-3}`, `${y-4}.${x-2}`, `${y-4}.${x-1}`,`${y-4}.${x}`,`${y-4}.${x+1}`,`${y-4}.${x+2}`, `${y-4}.${x+3}`, `${y-4}.${x+4}`,
+                        `${y-3}.${x+4}`,`${y-2}.${x+4}`,`${y-1}.${x+4}`,`${y}.${x+4}`,`${y+1}.${x+4}`,`${y+2}.${x+4}`,`${y+3}.${x+4}`,
+                        `${y+4}.${x-4}`, `${y+4}.${x-3}`, `${y+4}.${x-2}`, `${y+4}.${x-1}`,`${y+4}.${x}`,`${y+4}.${x+1}`,`${y+4}.${x+2}`, `${y+4}.${x+3}`, `${y+4}.${x+4}`,
+                        `${y-3}.${x-4}`,`${y-2}.${x-4}`,`${y-1}.${x-4}`,`${y}.${x-4}`,`${y+1}.${x-4}`,`${y+2}.${x-4}`,`${y+3}.${x-4}`
+                        
+					]
+					break
+			}
 			regions = regions.filter(x => !/-/g.test(x))
 
 			return regions
@@ -164,46 +193,7 @@ module.exports = class sendSql{
 
 	updateTile(){
 
-		// function getRandomIntInclusive(min, max) {
-		// 	min = Math.ceil(min);
-		// 	max = Math.floor(max);
-		// 	return Math.floor(Math.random() * (max - min + 1)) + min; //Максимум и минимум включаются
-			
-		//   }
- 
-
-		// for(let i = 0, t = 1, v, x = 0, y = 0; 25*25 > i; i++, x++){
-
-
-		// 	v = getRandomIntInclusive(0,5)
-			
-		// 	this.sql = "INSERT INTO commercial_card(type,x,y, region, owner) VALUES ?";
-		// 	this.values = [
-		// 				[v,x,y,t,t]
-		// 			];
-
-		// 	this.connection.query(this.sql, [this.values], function (err, result) {
-
-		// 		if (err) throw err;
-		// 		console.log( result.affectedRows);
-		// 	});
-
-
-		// 	if(x == 24){
-
-		// 		x = -1
-		// 		y++
-
-		// 	}
-
-		// 	if(25*25 - 1 == i && t < 6) {
-
-		// 		i = 0
-		// 		t++
-			
-		// 	}
-
-		// }
+		
 	}
 
 	//метод генерации областей карты по координатам
@@ -213,10 +203,7 @@ module.exports = class sendSql{
 
 		const getRandomInt = require('./getRandomInt.js')
 		
-
-
 		this.sql = "TRUNCATE TABLE  commercial_card;";
-
 
 		this.connection.query(this.sql, function (err, result) {
 

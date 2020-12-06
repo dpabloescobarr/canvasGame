@@ -25,15 +25,15 @@ http.createServer((req, res) => {
 		if(mode == 'getsql'){
 
 			this.data = await send.getRegionSql()
+			return JSON.stringify(this.data)
 
+		}else if(mode == 'getimg'){
+			
+			this.data = await send.getImgSets()
+			return JSON.stringify(this.data)
 		}
-		// else if(mode == 'getcache'){
 
-		// 	this.data = await send.getRegionCache()
 
-		// }
-
-		return JSON.stringify(this.data)
 	
 	}
 
@@ -70,19 +70,18 @@ http.createServer((req, res) => {
 
 			// }
 		}
-		// else if (req.method == 'GET'){
+		else if (req.method == 'GET'){
+			// res.setHeader("Content-Type", "image/png");
 
-		// 	switch(req.url){
+			switch(req.url){
 
-		// 		case '/firstget':
-		// 			res.end(await openMap('first'));
-		// 	}
+				case '/getimg':
+					res.end(await openMap('getimg'))
+			}
 
 
-		// }
+		}
 	})()
 
 
 }).listen(3000)
-
-

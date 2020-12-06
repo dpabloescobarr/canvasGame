@@ -3,18 +3,44 @@
 </head>
 
 <style>
+
     html, body {
-    margin: 0;
-    padding: 0;
-}
+        margin: 0;
+        padding: 0;
+    }
+
+    #service_panel{
+        background-color: #ffbf49;
+    }
+    .main_menu{
+        display: grid;
+        grid-template-columns: 79% 21%;
+        
+    }
+    .head{
+        display: grid;
+        grid-template-rows: 20% 80%;
+        z-index: 5;
+    }
+    .info{
+        background-color: #dcdcdc;
+    }
+
 </style>
 
-<canvas id="canvas"></canvas>
+<div class="main_menu">
 
+    <canvas id="canvas"></canvas>
+    
+    <div class="head">
+        <div class="info"></div>
+        <canvas id="service_panel"></canvas>
+    </div>
+
+</div>
 
 <script src="class/sendFetch.js"></script>
-<script src="functions.js"></script>
-<script src="components/selection_merged/functions.js"></script>
-<script src="components/selection_merged/outlineShape.js"></script>
-<script src="components/selection_merged/main.js"></script>
+<script src="engine/selection_merged/functions.js"></script>
+<script src="engine/selection_merged/main.js"></script>
+<script src="engine/map_editor/main.js"></script>
 <script src="engine/main.js"></script>

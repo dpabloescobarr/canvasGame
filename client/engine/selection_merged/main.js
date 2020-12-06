@@ -1,3 +1,4 @@
+//компонент для создания фигуры из однотипных тайлов которые находятся рядом друг с другом
 async function init(elem = null, v = 0, p_activeTile, p_mainMap, p_last_length = 0){
 
     let type = p_activeTile.type, 
