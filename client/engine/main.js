@@ -1,7 +1,8 @@
+//порядок расположения всех асинхронных функций очень важен!
 window.addEventListener('load', function() {
 
-    // localStorage.setItem('last_position', '0.0')
-    // localStorage.setItem('last_window', '500 -500')
+    localStorage.setItem('last_position', '0.0')
+    localStorage.setItem('last_window', '500 -500')
     let canvas     = document.getElementById("canvas"),
         ctx        = canvas.getContext("2d"),
         width      = canvas.width = window.innerWidth - 300,
@@ -23,23 +24,41 @@ window.addEventListener('load', function() {
         lastWindow   = localStorage.getItem('last_window'),              //последняя видимая область экрана
         centerRegionLocal,                                               //центральный регион в видимой области
         centerRegionCache = localStorage.getItem('center_region'),       //центральный регион в кэше
-        map,
-        on_off = true                                                    //нужен для первого запуска              
+        map,    
+        on_off = true                                                     //нужен для первого запуска 
+        
+    //получение положения режима редактирования
+    function edit_mode(){
 
+        this.pos = document.getElementById('butt_on_off').innerText
+        return (this.pos == 'Disable') ? false : true
+    }
 
-    //получаем карту
+    //откат внесенных замен тайлов в видимой области и кэше
+    function updateClear(oper, param){
+
+        switch(oper){
+
+            case 'get':
+                return localStorage.getItem('edit_update')
+
+            case 'set':
+                return localStorage.setItem('edit_update', param)
+        }
+    }
+    //получаем расположение тайлов на карте
     let getMap = {
 
         //запрашиваем расширенную карту для кэша
-        update_cache: async function (){
+        update_cache: async function (position){
 
             console.log('Кэширование...')
 
-            this.map   = await new sendFetch(lastPosition, 'getsql', 'POST')
+            this.map   = await new sendFetch(position, 'getsql', 'POST')
             localStorage.setItem('cache', this.map)
-            localStorage.setItem('center_region', lastPosition)
+            localStorage.setItem('center_region', position)
 
-            centerRegionCache = lastPosition
+            centerRegionCache = position
         },
         //получаем нужные регионы из кэша
         get_local: function (){
@@ -105,20 +124,27 @@ window.addEventListener('load', function() {
         }
     }
 
+
     function init(){
 
-        if(centerRegionLocal && centerRegionLocal != lastPosition || !centerRegionLocal){
+        if(centerRegionLocal && centerRegionLocal != lastPosition || !centerRegionLocal || updateClear('get')){
                         
-            if(activeTile && activeTile.triger) getMap.update_cache(lastPosition)
+            if(activeTile && activeTile.triger || updateClear('get') == 'clear'){
+                
+                getMap.update_cache(lastPosition)
+
+            }
 
             map = getMap.get_local()
 
             //отрисовка карты
             drawNewRegions(map)
+
+            localStorage.removeItem('edit_update')
         }
 
         //оптимизация. При движениях курсора, начинается работа
-        if(on_off || activeTile){
+        if(on_off || activeTile || updateClear('get') == 'clear'){
 
             this.x = ctx.getTransform().e
             this.y = ctx.getTransform().f
@@ -130,16 +156,16 @@ window.addEventListener('load', function() {
 
             activeTile = null
 
+            updateClear('set', 'true')
         }
         requestAnimationFrame(init)
     }
 
-
+    //здесь начало запуска всей программы
     (async function loadTileSets(){
 
         this.countSets = await new sendFetch(0, 'getimg', 'GET')
         this.countSets = JSON.parse(this.countSets)
-        this.imgSets   = []
 
         //раскладываем тайлсеты
         for(file of this.countSets){
@@ -160,7 +186,10 @@ window.addEventListener('load', function() {
 
         init()
 
+        mapEditor(allTileSets, updateClear, edit_mode)
+        
     })()
+
 
     let before = {
 
@@ -176,8 +205,6 @@ window.addEventListener('load', function() {
                 else return '498.5 -500'
         }
     }
-    
-    // img.src = "tileset.png"
     
     function drawNewRegions(map) {
 
@@ -384,10 +411,69 @@ window.addEventListener('load', function() {
         activeScale.status = false
     })
 
-    canvas.addEventListener('click', (e) =>{
+    canvas.addEventListener('click', function(e){
         
-        // const data = await new sendFetch(infoTile, 'POST')
-        console.log(lastPosition)
+        //раздел для работы с редактором тайлов
+        let targetTile   = document.getElementById('info_text')
+
+        if(edit_mode() && targetTile.innerText){
+
+            targetTile = targetTile.getAttribute('short_id')
+
+            let replaceTile,
+                groupUpdate  = localStorage.getItem('group_update_tiles')
+                cache        = JSON.parse(localStorage.getItem('cache'))
+
+            targetTile       = targetTile.split(' ')
+            this.type        = targetTile[0]
+            this.tileset     = targetTile[1]
+
+            if(!groupUpdate) groupUpdate = '[]'
+            groupUpdate = JSON.parse(groupUpdate)
+
+            this.newTile = {
+
+                type:    +this.type,
+                tileset: +this.tileset,
+                x:       infoTile.x,
+                y:       infoTile.y,
+                region:  infoTile.region
+
+            }
+            
+            //присваиваем переменной этого события индекс найденного тайла в списке обновления если он есть
+            groupUpdate.find((elem, index) =>{
+                
+                if(elem.x == this.newTile.x && elem.y == this.newTile.y) replaceTile = index
+
+            })
+
+            //если не найден индекс уже имеющегося в списке обновления тайла, то добавляем новый
+            if(replaceTile != undefined) groupUpdate[replaceTile] = this.newTile
+                else groupUpdate.push(this.newTile)
+
+
+            groupUpdate = JSON.stringify(groupUpdate)
+            localStorage.setItem('group_update_tiles', groupUpdate)
+
+
+            cache.map((item, map_idx) =>{
+                item.find((elem, find_idx) =>{
+
+                    if(elem.x == this.newTile.x && elem.y == this.newTile.y){
+    
+                        cache[map_idx][find_idx] = this.newTile
+                    }
+                })
+            })
+
+            localStorage.setItem('cache', JSON.stringify(cache))
+    
+            //разешаем обновить регионы из кэша
+            updateClear('set', 'true')
+
+            //дальнейшие действия происходят через map_editor в файле main.js
+        }
     })
     
 

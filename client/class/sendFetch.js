@@ -14,8 +14,7 @@ class sendFetch{
 
         async function postData(url = '', data = {}, mode, operation) {
 
-            if(operation == 'getsql'){
-
+            // if(operation == 'getsql'){
                     const response = await fetch(url, {
                         
                         method:  mode, // *GET, POST, PUT, DELETE, etc.
@@ -28,32 +27,33 @@ class sendFetch{
                         redirect: 'follow', // manual, *follow, error
                         referrerPolicy: 'no-referrer', // no-referrer, *client
 
-                        body: JSON.stringify(data)
+                        body: (operation != 'getimg') ? JSON.stringify(data) : null
 
                     })
 
                     return response.text()
 
-            }else if(operation == 'getimg'){
+            // }
+            // else if(operation == 'getimg'){
 
-                    const response = await fetch(url, {
+            //         const response = await fetch(url, {
                         
-                        method:  mode, // *GET, POST, PUT, DELETE, etc.
-                        mode: 'cors', // no-cors, *cors, same-origin
-                        cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
-                        credentials: 'same-origin', // include, *same-origin, omit
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded'
+            //             method:  mode, // *GET, POST, PUT, DELETE, etc.
+            //             mode: 'cors', // no-cors, *cors, same-origin
+            //             cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
+            //             credentials: 'same-origin', // include, *same-origin, omit
+            //             headers: {
+            //                 'Content-Type': 'application/x-www-form-urlencoded'
                         
-                        },
-                        redirect: 'follow', // manual, *follow, error
-                        referrerPolicy: 'no-referrer', // no-referrer, *client
+            //             },
+            //             redirect: 'follow', // manual, *follow, error
+            //             referrerPolicy: 'no-referrer', // no-referrer, *client
 
-                        body: null
+            //             body: null
 
-                    })
-                    return response.text()
-            }
+            //         })
+            //         return response.text()
+            // }
 
            
 

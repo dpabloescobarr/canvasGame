@@ -31,6 +31,11 @@ http.createServer((req, res) => {
 			
 			this.data = await send.getImgSets()
 			return JSON.stringify(this.data)
+
+		}else if(mode == 'update_tiles'){
+
+			this.data = await send.updateTiles()
+			return JSON.stringify('Данные отправлены!')
 		}
 
 
@@ -55,6 +60,14 @@ http.createServer((req, res) => {
 				req.on('end', async() => {
 
 					this.findTile = await openMap('getsql', body)
+					res.end(this.findTile)
+				})
+
+			}else if(req.url == '/update_tiles'){
+
+				req.on('end', async() => {
+
+					this.findTile = await openMap('update_tiles', body)
 					res.end(this.findTile)
 				})
 

@@ -8,7 +8,7 @@ module.exports = class sendSql{
 	constructor(mode, elem){
 		
 		//очистка от кавычек так как данные в json
-		this.elem  = elem.replace(/\"/g, '')
+		this.elem  = elem
 		this.mode  = mode
 		this.mysql = require("mysql2")
 		  
@@ -26,11 +26,43 @@ module.exports = class sendSql{
 			  console.error("Ошибка: " + err.message);
 
 			}else{
-			  console.log("Подключение к серверу MySQL успешно установлено");
+
+				switch(mode){
+
+					case 'getimg':
+						console.log('Получение картинок')
+						break
+					
+					case 'getsql':
+						console.log('Обновление кэша регионов')
+						break
+
+				}
+			 
 			}
 
 		});
 
+	}
+	updateTiles(){
+
+		if(typeof this.elem == 'string' && this.elem.length > 45){
+
+			let elem = JSON.parse(this.elem)
+
+			elem.map(item => {
+
+				if(typeof item.region == 'string' && typeof item.tileset == 'number'){
+
+					this.sql = "UPDATE commercial_card SET tileset = "+item.tileset+", type = "+item.type+" WHERE x = "+item.x+" AND y = "+item.y+"";
+					this.connection.query(this.sql)
+				}
+			})
+			console.log(`Обновление тайлов. Кол-во: ${elem.length}, посл. элемент: x_${elem[elem.length-1].x}, y_${elem[elem.length-1].y}`)
+
+		}else{
+			console.log('Ошибка типа данных!')
+		}
 	}
 	//получение тайлсетов в зашифрованном виде json текста
 	getImgSets(){
@@ -84,7 +116,7 @@ module.exports = class sendSql{
 		
 		return new Promise(resolve => {
 
-			let elem = this.elem
+			let elem = this.elem.replace(/\"/g, '')
 
 			this.sql = "SELECT type, tileset, region, y, x FROM commercial_card WHERE region IN ?";
 
@@ -189,11 +221,6 @@ module.exports = class sendSql{
 		}
 
 
-	}
-
-	updateTile(){
-
-		
 	}
 
 	//метод генерации областей карты по координатам
