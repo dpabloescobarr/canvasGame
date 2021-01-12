@@ -250,9 +250,9 @@ window.addEventListener('load', function() {
     function smartStroke(p_mode, p_type, p_top, p_right, p_bottom, p_left){
 
         let construct = new Path2D(),
-            fit = 8,
+            fit = 64,
             //номера тайлов, которые не нужно обводить
-            noStroke = [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+            noStroke = [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
 
 
         //оптимизация. все тайлы которые находятся выше, не обводятся

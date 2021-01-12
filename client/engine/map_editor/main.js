@@ -183,11 +183,11 @@ function mapEditor(tiles, updateClear, edit_mode) {
 
         let construct = new Path2D()
 
-        construct.moveTo(lineWidth, lineHeight)
-        construct.lineTo(tileWidth + lineWidth, lineHeight)
-        construct.lineTo(tileWidth + lineWidth, tileHeight + lineHeight)
-        construct.lineTo(lineWidth, tileHeight + lineHeight)
-        construct.lineTo(lineWidth, lineHeight)
+            construct.moveTo(lineWidth, lineHeight)
+            construct.lineTo(tileWidth + lineWidth, lineHeight)
+            construct.lineTo(tileWidth + lineWidth, tileHeight + lineHeight)
+            construct.lineTo(lineWidth, tileHeight + lineHeight)
+            construct.lineTo(lineWidth, lineHeight)
 
         return construct
     }
