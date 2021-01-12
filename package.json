@@ -1,0 +1,8 @@
+{
+    "name": "canvasGame",
+    "version": "0.1.0",
+    "requires": true,
+    "dependencies": {
+        "mysql2": "^2.2.5"
+    }
+}
